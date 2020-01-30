@@ -1,0 +1,6 @@
+find_package( OpenCV REQUIRED )
+include_directories( ${OpenCV_INCLUDE_DIRS} )
+include_directories(${ObjectTracking_SOURCE_DIR}/LibProject/inc)
+file( GLOB LIB_SOURCES *.cpp )
+add_library(LibProject ${LIB_SOURCES})
+target_link_libraries( LibProject ${OpenCV_LIBS} )
