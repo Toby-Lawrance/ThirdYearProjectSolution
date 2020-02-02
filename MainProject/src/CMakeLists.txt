@@ -2,6 +2,7 @@ find_package(ament_cmake REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 
 
@@ -11,7 +12,7 @@ include_directories( ${ObjectTracking_SOURCE_DIR}/LibProject/inc )
 link_directories( ${ObjectTracking_SOURCE_DIR}/LibProject/src )
 
 add_executable( runRobot main.cpp )
-ament_target_dependencies(runRobot OpenCV rclcpp std_msgs geometry_msgs)
+ament_target_dependencies(runRobot OpenCV rclcpp std_msgs nav_msgs geometry_msgs)
 target_include_directories(runRobot PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)

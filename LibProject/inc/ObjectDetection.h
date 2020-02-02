@@ -18,6 +18,8 @@ public:
 	const float contrastChange = 1.5;
 	const float minPctSize = 0.01;
 
+	vector<possibleObject> detectedInFrame;
+
 	ObjectDetector(cv::Mat openingFrame) : infoGraph(openingFrame) {}
 
 	void processFrame(cv::Mat frame, Pose currentPose, bool drawGraph = false);

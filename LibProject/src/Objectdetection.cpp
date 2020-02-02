@@ -121,6 +121,8 @@ void ObjectDetector::processFrame(cv::Mat camFrame, Pose currentPose, bool drawG
 			detectionMap.addMeasurement(currentPose, estimateDepth, it->maxMinAngles);
 		}
 	}
+
+	detectedInFrame = vector<possibleObjects>(detectedObjects);
 	
 	if(drawGraph)
 	{
