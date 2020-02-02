@@ -7,9 +7,9 @@ find_package(geometry_msgs REQUIRED)
 
 
 include_directories( ${OpenCV_INCLUDE_DIRS} )
-include_directories( ${ObjectTracking_SOURCE_DIR}/MainProject/inc )
-include_directories( ${ObjectTracking_SOURCE_DIR}/LibProject/inc )
-link_directories( ${ObjectTracking_SOURCE_DIR}/LibProject/src )
+include_directories( ${object_tracking_SOURCE_DIR}/MainProject/inc )
+include_directories( ${object_tracking_SOURCE_DIR}/LibProject/inc )
+link_directories( ${object_tracking_SOURCE_DIR}/LibProject/src )
 
 add_executable( runRobot main.cpp )
 ament_target_dependencies(runRobot OpenCV rclcpp std_msgs nav_msgs geometry_msgs)

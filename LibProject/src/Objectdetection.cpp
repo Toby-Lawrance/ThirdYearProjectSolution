@@ -122,7 +122,7 @@ void ObjectDetector::processFrame(cv::Mat camFrame, Pose currentPose, bool drawG
 		}
 	}
 
-	detectedInFrame = vector<possibleObjects>(detectedObjects);
+	detectedInFrame = vector<possibleObject>(detectedObjects);
 	
 	if(drawGraph)
 	{

@@ -14,7 +14,6 @@
 #include <nav_msgs/msg/odometry.hpp>
 
 using namespace std;
-using std::placeholders::_1;
 using namespace cv;
 using namespace chrono;
 
@@ -25,13 +24,13 @@ using namespace chrono;
 
 	 rclcpp::TimerBase::SharedPtr timer;
 	 rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr movePub;
-	 rclcpp::Subscriber<nav_msgs::msg::Odometry>::SharedPtr odomSub;
+	 rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odomSub;
 
 	 geometry_msgs::msg::Twist movementState;
 	 nav_msgs::msg::Odometry odometryState;
 
 	 Pose currentRobotPose;
-	 ObjectDetector od;
+	 std::unique_ptr<ObjectDetector> od;
 
 	 VideoCapture cap;
 	 VideoWriter videoWriter;
@@ -39,33 +38,32 @@ using namespace chrono;
 
 	 ProcessorNavigator() : Node("processor_navigator")
 	 {
- 		cap = VideoCapture(CAP_DSHOW);
-		 Mat base;
-		 if (!Initialise_Camera(cap, videoWriter, base))
+ 		cap = VideoCapture(0);
+		 Mat baseFrame;
+		 if (!Initialise_Camera(cap, videoWriter, baseFrame))
 		 {
 			 cin.get();
-			 return -1;
+			 return;
 		 }
-		 od = ObjectDetector(base);
-		mapWriter = VideoWriter("map.avi",VideoWriter::fourcc('M', 'J', 'P', 'G'),videoWriter.get(CAP_PROP_FPS),Size(1000,1000),true);
-		odomSub = this->create_subscription<nav_msgs::msg::Odometry>("odom",10,bind(&ProcessorNavigator::odom_callback, this, 1))
+		 od =  std::make_unique<ObjectDetector>(baseFrame);
+		mapWriter = VideoWriter("map.avi",VideoWriter::fourcc('M', 'J', 'P', 'G'),15,Size(1000,1000),true);
+		movePub = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
+		odomSub = this->create_subscription<nav_msgs::msg::Odometry>("odom",10, bind(&ProcessorNavigator::odom_callback, this, placeholders::_1));
 
 		 timer = this->create_wall_timer(50ms, bind(&ProcessorNavigator::processImg,this));
 	 }
 
 	 ~ProcessorNavigator()
 	 {
-		 imwrite("Map.bmp", od.detectionMap.map);
+		 imwrite("Map.bmp", od->detectionMap.map);
 	 }
 
-	 void odom_callback(const nav_msgs::msgs::Odometry::SharedPtr msg) const
+	 void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg)
 	 {
-		auto point = msg->pose->pose->position;
-		auto quat = msg->pose->pose->orientation;
+		auto point = msg->pose.pose.position;
+		auto quat = msg->pose.pose.orientation;
 
-		currentRobotPose.x = (int)(point.x/100.0);
-		currentRobotPose.y = (int)(point.y/100.0);
-		currentRobotPose.heading = quat.z;
+		currentRobotPose = Pose((int)(point.x/100.0),(int)(point.y/100.0),quat.z);
 	 }
 
 	 void processImg()
@@ -76,22 +74,22 @@ using namespace chrono;
 		 if (!readSuccess)
 		 {
 			 cout << "Stream ended" << endl;
-			 break;
+			 exit(0);
 		 }
 
-		 if (waitKey(1) == 27) break;
+		 if (waitKey(1) == 27) exit(0);
 		 bool draw = graph == 1;
 
-		 od.processFrame(frame,currentRobotPose,draw);
+		 od->processFrame(frame,currentRobotPose,draw);
 
 		 if(draw)
 		 {
-			 frame += od.infoGraph.drawing;
+			 frame += od->infoGraph.drawing;
 		 }
 
 		 videoWriter.write(frame);
-		 float scaling = 1000.0 / od.detectionMap.map.rows;
-		 Mat displayMap = od.detectionMap.getDisplayMap(defaultPose,scaling);
+		 float scaling = 1000.0 / od->detectionMap.map.rows;
+		 Mat displayMap = od->detectionMap.getDisplayMap(currentRobotPose,scaling);
 		 mapWriter.write(displayMap);
 	 }
  };
@@ -99,6 +97,7 @@ using namespace chrono;
 int main(int argc, char* argv[])
 {
 	rclcpp::init(argc,argv);
+	cout << "Init OpenCV: " << CV_VERSION << endl;
 	rclcpp::spin(make_shared<ProcessorNavigator>());
 	rclcpp::shutdown();
 	return 0;
