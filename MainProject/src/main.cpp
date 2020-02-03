@@ -20,14 +20,13 @@ using namespace chrono;
  class ProcessorNavigator : public rclcpp::Node
  {
   public:
-	 int graph = 0; //Set to 1 for graph drawing on the videoOutput
+	 int graph = 1; //Set to 1 for graph drawing on the videoOutput
 
-	 rclcpp::TimerBase::SharedPtr timer;
 	 rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr movePub;
 	 rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odomSub;
 
-	 geometry_msgs::msg::Twist movementState;
-	 nav_msgs::msg::Odometry odometryState;
+	 geometry_msgs::msg::Twist::SharedPtr movementState;
+	 nav_msgs::msg::Odometry::SharedPtr odometryState;
 
 	 Pose currentRobotPose;
 	 std::unique_ptr<ObjectDetector> od;
@@ -46,11 +45,9 @@ using namespace chrono;
 			 return;
 		 }
 		 od =  std::make_unique<ObjectDetector>(baseFrame);
-		mapWriter = VideoWriter("map.avi",VideoWriter::fourcc('M', 'J', 'P', 'G'),15,Size(1000,1000),true);
+		mapWriter = VideoWriter("map.avi",VideoWriter::fourcc('M', 'J', 'P', 'G'),5,Size(1000,1000),true);
 		movePub = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
 		odomSub = this->create_subscription<nav_msgs::msg::Odometry>("odom",10, bind(&ProcessorNavigator::odom_callback, this, placeholders::_1));
-
-		 timer = this->create_wall_timer(50ms, bind(&ProcessorNavigator::processImg,this));
 	 }
 
 	 ~ProcessorNavigator()
@@ -62,8 +59,9 @@ using namespace chrono;
 	 {
 		auto point = msg->pose.pose.position;
 		auto quat = msg->pose.pose.orientation;
-
-		currentRobotPose = Pose((int)(point.x/100.0),(int)(point.y/100.0),quat.z);
+		currentRobotPose.x = (int)(point.x*100.0);
+		currentRobotPose.y = (int)(point.y*100.0);
+		currentRobotPose.heading = QuatToRadYaw(quat.x, quat.y, quat.z, quat.w);
 	 }
 
 	 void processImg()
@@ -77,7 +75,6 @@ using namespace chrono;
 			 exit(0);
 		 }
 
-		 if (waitKey(1) == 27) exit(0);
 		 bool draw = graph == 1;
 
 		 od->processFrame(frame,currentRobotPose,draw);
@@ -98,7 +95,12 @@ int main(int argc, char* argv[])
 {
 	rclcpp::init(argc,argv);
 	cout << "Init OpenCV: " << CV_VERSION << endl;
-	rclcpp::spin(make_shared<ProcessorNavigator>());
+	auto node = make_shared<ProcessorNavigator>();
+	while(rclcpp::ok())
+	{
+		node->processImg();
+		rclcpp::spin_some(node);
+	}
 	rclcpp::shutdown();
 	return 0;
 }

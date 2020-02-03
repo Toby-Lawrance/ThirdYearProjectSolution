@@ -101,5 +101,6 @@ pair<int, int> getFQTQ(vector<T> data) //Get First and Third quartile
 vector<int> changeDetect(vector<float> change_values, float threshold);
 
 float degToRad(float ang);
+float QuatToRadYaw(float x, float y, float z, float w);
 
 float radBound(float radAng);

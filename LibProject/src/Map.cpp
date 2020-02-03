@@ -58,10 +58,11 @@ cv::Mat Map::getDisplayMap(Pose robotPose, float scale) const
 
 void Map::incrementPixel(int y, int x) //Flip it because of dimensions
 {
+	//Stronger belief system
 	auto pixel = map.at<uchar>(x-1, y-1);
 	if(pixel < 255)
 	{
-		pixel = (pixel + 1);
+		pixel = pixel == 0 ? 1 : max(255, pixel * 10);
 		map.at<uchar>(x-1, y-1) = pixel;
 	}
 }

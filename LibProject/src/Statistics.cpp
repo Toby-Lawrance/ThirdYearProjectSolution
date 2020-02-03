@@ -22,6 +22,14 @@ float degToRad(float ang)
 	return fmod(ang * degToRadMult, TwoPi);
 }
 
+float QuatToRadYaw(float x, float y, float z, float w)
+{
+	// yaw (z-axis rotation)
+	double siny_cosp = 2 * (w * z + x * y);
+	double cosy_cosp = 1 - 2 * (y * y + z * z);
+	return atan2(siny_cosp, cosy_cosp);
+}
+
 float radBound(float radAng)
 {
 	const static float TwoPi = 2.0 * M_PI;

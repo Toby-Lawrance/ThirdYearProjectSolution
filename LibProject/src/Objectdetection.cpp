@@ -97,7 +97,6 @@ void ObjectDetector::processFrame(cv::Mat camFrame, Pose currentPose, bool drawG
 			const float heightRatio = it->bounds.height / it->bounds.width;
 			if(heightRatio > 3) //Strange artifact
 			{
-				cout << "Object too big?" << heightRatio << endl;
 				//it->estimatedSize = Size2f(0, 0);
 			}
 			const float height = heightRatio * ObjectWidth;
@@ -107,7 +106,6 @@ void ObjectDetector::processFrame(cv::Mat camFrame, Pose currentPose, bool drawG
 			const float widthRatio = xyRatio;
 			if (widthRatio > 3) //Strange artifact
 			{
-				cout << "Object too big?" << widthRatio << endl;
 				it->estimatedSize = Size2f(0, 0);
 			}
 			const float width = widthRatio * ObjectWidth;
