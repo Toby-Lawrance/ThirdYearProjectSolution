@@ -19,8 +19,8 @@ void Map::increaseSize(int additional)
 void Map::addMeasurement(Pose currentPose, float depth, Size2f& maxMinAngles)
 {
 	Point2f origin = getMapCentre();
-	origin.x += currentPose.x;
-	origin.y += currentPose.y;
+	origin.x += currentPose.loc.x;
+	origin.y += currentPose.loc.y;
 	const int distance = cvRound(depth);
 
 	while(origin.x+distance > map.cols || origin.x - distance < 0 || origin.y + distance > map.rows || origin.y - distance < 0)
@@ -28,8 +28,8 @@ void Map::addMeasurement(Pose currentPose, float depth, Size2f& maxMinAngles)
 		increaseSize(distance);
 		//Reselect origin of drawing
 		origin = getMapCentre();
-		origin.x += currentPose.x;
-		origin.y += currentPose.y;
+		origin.x += currentPose.loc.x;
+		origin.y += currentPose.loc.y;
 	}
 
 	//In order to prevent the robot hitting things, we will slightly spread the angle, this brings the line slightly closer and makes it slightly wider
@@ -161,7 +161,7 @@ float Pose::rotateDeg(float angle)
 	return heading = radBound(heading + degToRad(angle));
 }
 
-std::string Point::toString() const
+std::string util::Point::toString() const
 {
 	return "(" + to_string(x) + "," + to_string(y) + ")";
 }

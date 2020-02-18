@@ -11,7 +11,7 @@ include_directories( ${object_tracking_SOURCE_DIR}/MainProject/inc )
 include_directories( ${object_tracking_SOURCE_DIR}/LibProject/inc )
 link_directories( ${object_tracking_SOURCE_DIR}/LibProject/src )
 
-add_executable( runRobot main.cpp )
+add_executable( runRobot main.cpp Navigator.cpp )
 ament_target_dependencies(runRobot OpenCV rclcpp std_msgs nav_msgs geometry_msgs)
 target_include_directories(runRobot PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

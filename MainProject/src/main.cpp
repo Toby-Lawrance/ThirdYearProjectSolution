@@ -108,11 +108,11 @@ int main(int argc, char* argv[])
 	rclcpp::init(argc,argv);
 	cout << "Init OpenCV: " << CV_VERSION << endl;
 
-	auto odomReset = this->create_publisher<std_msgs::msg::Empty>("reset", 10);
-	odomReset->publish(std_msgs::msg::Empty());
 	//RandomExplorer re;
 	Searcher se;
 	auto node = make_shared<ProcessorNavigator>(&se);
+	auto odomReset = node->create_publisher<std_msgs::msg::Empty>("reset", 10);
+	odomReset->publish(std_msgs::msg::Empty());
 	while(rclcpp::ok())
 	{
 		node->processImg();

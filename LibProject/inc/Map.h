@@ -1,47 +1,50 @@
 #pragma once
 
 #include <opencv2/opencv.hpp>
-
-class Point
+namespace util
 {
- public:
-	int x,y;
-
-	Point(): x(0),y(0) {}
-	Point(int _x,int_y): x(_x),y(_y) {}
-
-	inline bool operator ==(const Point& lhs, const Point& rhs)
+	class Point
 	{
-		return lhs.x == rhs.x && lhs.y == rhs.y;
-	}
+	 public:
+		int x,y;
 
-	bool operator <(const Point& rhs) const
-	{
-		return this->toString() < rhs.toString();
-	}
+		Point(): x(0),y(0) {}
+		Point(int _x,int _y): x(_x),y(_y) {}
 
-	Point operator-(const Point& rhs) const
-	{
-		return Point(x - rhs.x,y - rhs.y);
-	}
+		bool operator ==(const Point& rhs) const
+		{
+			return x == rhs.x && y == rhs.y;
+		}
 
-	Point operator+(const Point& rhs) const
-	{
-		return Point(x + rhs.x,y + rhs.y);
-	}
+		bool operator <(const Point& rhs) const
+		{
+			return this->toString() < rhs.toString();
+		}
 
-	Point operator*(const int& rhs) const
-	{
-		return Point(x * rhs,y * rhs);
-	}
+		Point operator-(const Point& rhs) const
+		{
+			return Point(x - rhs.x,y - rhs.y);
+		}
 
-	std::string toString() const;
-};
+		Point operator+(const Point& rhs) const
+		{
+			return Point(x + rhs.x,y + rhs.y);
+		}
+
+		Point operator*(const int& rhs) const
+		{
+			return Point(x * rhs,y * rhs);
+		}
+
+		std::string toString() const;
+	};
+}
+
 
 class Pose
 {
 public:
-	Point loc;
+	util::Point loc;
 	float heading;
 
 	Pose() : heading(0) {}

@@ -8,9 +8,9 @@
 
 using namespace std;
 
-vector<Point> getAndReducePath(Node* solvedGoal)
+vector<util::Point> getAndReducePath(Node* solvedGoal)
 {
-	vector<Point> precisePath;
+	vector<util::Point> precisePath;
 	Node* n = solvedGoal;
 	while(n->parent != nullptr)
 	{
@@ -18,25 +18,25 @@ vector<Point> getAndReducePath(Node* solvedGoal)
 		n = n->parent;
 	}
 
-	vector<Point> waypointPath;
+	vector<util::Point> waypointPath;
 	waypointPath.push_back(solvedGoal->loc);
 	int wayPointRef = 0;
-	Point diff;
+	util::Point diff;
 	int splitCount = 1;
 	for(auto it = precisePath.rbegin()+1; it != precisePath.rend(); it++)
 	{
-		const auto change = waypointPath[waypointRef] - *it;
-		if(diff == Point())
+		const auto change = waypointPath[wayPointRef] - *it;
+		if(diff == util::Point())
 		{
 			diff == change;
 			splitCount++;
-		} else 	if(change == diff * splitCount)
+		} else 	if(change == (diff * splitCount))
 		{
 			splitCount++;
 		} else
 		{
 			waypointPath.push_back(*it);
-			diff = Point();
+			diff = util::Point();
 			wayPointRef++;
 			splitCount = 1;
 		}
@@ -48,22 +48,22 @@ vector<Point> getAndReducePath(Node* solvedGoal)
 	return waypointPath;
 }
 
-vector<Point> getNeighbours(Point p)
+vector<util::Point> getNeighbours(util::Point p)
 {
-	vector<Point> neighbours;
+	vector<util::Point> neighbours;
 	for(int x = -1; x <= 1; x++)
 	{
 		for(int y = -1; y<=1; y++)
 		{
 			if(x == 0 && y == 0) { continue; }
 
-			neighbours.push_back(Point(x,y));
+			neighbours.push_back(util::Point(x,y));
 		}
 	}
 	return neighbours;
 }
 
-vector<Point> Navigator::pathTo(Point to)
+vector<util::Point> Navigator::pathTo(util::Point to)
 {
 	auto goal = make_shared<Node>(to, nullptr,0);
 	auto frontier = set<shared_ptr<Node>>();
@@ -71,25 +71,25 @@ vector<Point> Navigator::pathTo(Point to)
 	start->calculateF(*goal,navMap);
 	frontier.insert(move(start));
 
-	map<Point,shared_ptr<Node>> KnownNodes;
+	map<util::Point,shared_ptr<Node>> KnownNodes;
 
-	while(!fronter.empty())
+	while(!frontier.empty())
 	{
 		auto current = *(frontier.begin());
 		KnownNodes[current->loc] = current;
 
-		if(current == goal)
+		if(current->loc == goal->loc)
 		{return getAndReducePath(current.get());}
 
-		auto neighbours = getNeighbours(current.loc);
+		auto neighbours = getNeighbours(current->loc);
 		for(auto it = neighbours.begin(); it != neighbours.end(); it++)
 		{
-			Node newNode(*it,current.get(),current.gCost + 1);
+			auto newNode = make_shared<Node>(*it,current.get(),current->gCost + 1);
 			if(KnownNodes.count(*it) == 0)
 			{
-				newNode.calculateF(goal,navMap);
+				newNode->calculateF(*goal,navMap);
 				frontier.insert(newNode);
-			} else if(newNode.gCost < KnownNodes[*it].gCost)
+			} else if(newNode->gCost < KnownNodes[*it]->gCost)
 			{
 				KnownNodes[*it] = newNode;
 			}
@@ -100,7 +100,7 @@ vector<Point> Navigator::pathTo(Point to)
 
 //Max Linear = 0.22
 //Max Angular = 2.84
-geometry_msgs::msg::Twist Navigator::goTo(Point loc)
+geometry_msgs::msg::Twist Navigator::goTo(util::Point loc)
 {
 	geometry_msgs::msg::Twist move;
 	const float relAngle = atan((float)loc.x/(float)loc.y) - robotPose->heading;
@@ -110,28 +110,28 @@ geometry_msgs::msg::Twist Navigator::goTo(Point loc)
 	return move;
 }
 
-Point Node::convertToMap(Map* m) const
+util::Point Node::convertToMap(Map* m) const
 {
 	const auto centre = m->getMapCentre();
-	return Point(loc.x + centre.x,loc.y + centre.y);
+	return util::Point(loc.x + centre.x,loc.y + centre.y);
 }
 
 
-Point Node::convertToMap(Map* m, Point pathLoc) const
+util::Point Node::convertToMap(Map* m, util::Point pathLoc)
 {
 	const auto centre = m->getMapCentre();
-	return Point(pathLoc.x + centre.x,pathLoc.y + centre.y);
+	return util::Point(pathLoc.x + centre.x,pathLoc.y + centre.y);
 }
 
-Point Node::convertToPath(Map* m, Point mapLoc) const
+util::Point Node::convertToPath(Map* m, util::Point mapLoc)
 {
 	const auto centre = m->getMapCentre();
-	return Point(mapLoc.x - centre.x,mapLoc.y - centre.y);
+	return util::Point(mapLoc.x - centre.x,mapLoc.y - centre.y);
 }
 
-bool Navigator::lineCheckObstacle(Point2f checkPoint)
+bool Navigator::lineCheckObstacle(cv::Point2f checkPoint)
 {
-	Point2f start = Point2f(robotPose->x,robotPose->y);
+	cv::Point2f start = cv::Point2f(robotPose->loc.x,robotPose->loc.y);
 	const int x0 = start.x;
 	const int y0 = start.y;
 	const int x1 = checkPoint.x;
@@ -187,7 +187,7 @@ bool Navigator::checkLineHigh(int x0, int y0, int x1, int y1)
 	return false;
 }
 
-bool checkLineLow(int x0, int y0, int x1, int y1)
+bool Navigator::checkLineLow(int x0, int y0, int x1, int y1)
 {
 	int dx = x1 - x0;
 	int dy = y1 - y0;
@@ -215,9 +215,9 @@ bool checkLineLow(int x0, int y0, int x1, int y1)
 	return false;
 }
 
-bool checkPixel(int y, int x) //Flip it because of dimensions
+bool Navigator::checkPixel(int y, int x) //Flip it because of dimensions
 {
-	auto pixel = map.at<uchar>(x-1, y-1);
+	auto pixel = navMap->map.at<uchar>(x-1, y-1);
 	return pixel > 1;
 }
 
@@ -230,7 +230,7 @@ geometry_msgs::msg::Twist Explorer::nextMove()
 geometry_msgs::msg::Twist RandomExplorer::nextMove()
 {
 	const int checkRange = 20;
-	Point2f endPoint(robotPose->x + checkRange * cos(robotPose->heading), robotPose->y + checkRange * sin(robotPose->heading));
+	cv::Point2f endPoint(robotPose->loc.x + checkRange * cos(robotPose->heading), robotPose->loc.y + checkRange * sin(robotPose->heading));
 	bool obstructed = lineCheckObstacle(endPoint);
 	geometry_msgs::msg::Twist movement;
 	movement.angular.z = 0.0;
@@ -256,7 +256,7 @@ geometry_msgs::msg::Twist RandomExplorer::nextMove()
 
 geometry_msgs::msg::Twist Searcher::nextMove()
 {
-	const Point goal(100,100);
+	const util::Point goal(100,100);
 	auto nextWayPoint = pathTo(goal).front();
 	geometry_msgs::msg::Twist movement = goTo(nextWayPoint);
 	return movement;
