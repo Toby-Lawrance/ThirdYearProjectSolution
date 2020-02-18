@@ -31,6 +31,12 @@ void Map::addMeasurement(Pose currentPose, float depth, Size2f& maxMinAngles)
 		origin.x += currentPose.x;
 		origin.y += currentPose.y;
 	}
+
+	//In order to prevent the robot hitting things, we will slightly spread the angle, this brings the line slightly closer and makes it slightly wider
+	//This should prevent the robot from clipping the objects
+	const float diffChange = abs(maxMinAngles.width - maxMinAngles.height) * 0.1;
+	maxMinAngles.width -= diffChange;
+	maxMinAngles.height += diffChange;
 	
 	const int x0 = origin.x + (depth * cos(currentPose.heading + maxMinAngles.width));
 	const int y0 = origin.y + (depth * sin(currentPose.heading + maxMinAngles.width));
@@ -47,8 +53,8 @@ cv::Mat Map::getDisplayMap(Pose robotPose, float scale) const
 	resize(map, displayMap, displaySize);
 	cvtColor(displayMap, displayMap, COLOR_GRAY2RGB);
 	Point2f startPoint = getMapCentre();
-	startPoint.x += robotPose.x;
-	startPoint.y += robotPose.y;
+	startPoint.x += robotPose.loc.x;
+	startPoint.y += robotPose.loc.y;
 	startPoint *= scale;
 	Point2f endPoint(startPoint.x + scale * cos(robotPose.heading), startPoint.y + scale * sin(robotPose.heading));
 	circle(displayMap, startPoint, scale, Scalar(255, 0, 0));
@@ -155,7 +161,12 @@ float Pose::rotateDeg(float angle)
 	return heading = radBound(heading + degToRad(angle));
 }
 
+std::string Point::toString() const
+{
+	return "(" + to_string(x) + "," + to_string(y) + ")";
+}
+
 std::string Pose::toString() const
 {
-	return "(" + to_string(x) + "," + to_string(y) + "," + to_string(heading) + ")";
+	return "(" + loc.toString() + "," + to_string(heading) + ")";
 }
