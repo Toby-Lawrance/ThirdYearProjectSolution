@@ -14,6 +14,7 @@
 
 #include"rclcpp/rclcpp.hpp"
 #include <nav_msgs/msg/odometry.hpp>
+#include <std_msgs/msg/empty.hpp>
 
 using namespace std;
 using namespace cv;
@@ -106,8 +107,12 @@ int main(int argc, char* argv[])
 {
 	rclcpp::init(argc,argv);
 	cout << "Init OpenCV: " << CV_VERSION << endl;
-	RandomExplorer re;
-	auto node = make_shared<ProcessorNavigator>(&re);
+
+	auto odomReset = this->create_publisher<std_msgs::msg::Empty>("reset", 10);
+	odomReset->publish(std_msgs::msg::Empty());
+	//RandomExplorer re;
+	Searcher se;
+	auto node = make_shared<ProcessorNavigator>(&se);
 	while(rclcpp::ok())
 	{
 		node->processImg();

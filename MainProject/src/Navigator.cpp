@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <memory>
 #include <algorithm>
+#include <math.h>
 
 using namespace std;
 
@@ -40,7 +41,8 @@ vector<Point> getAndReducePath(Node* solvedGoal)
 			splitCount = 1;
 		}
 	}
-	waypointPath.push_back(precisePath.back());
+	//Don't need to prepend where we are.
+	//waypointPath.push_back(precisePath.back());
 
 	reverse(waypointPath.begin(),waypointPath.end());
 	return waypointPath;
@@ -94,6 +96,18 @@ vector<Point> Navigator::pathTo(Point to)
 
 		}
 	}
+}
+
+//Max Linear = 0.22
+//Max Angular = 2.84
+geometry_msgs::msg::Twist Navigator::goTo(Point loc)
+{
+	geometry_msgs::msg::Twist move;
+	const float relAngle = atan((float)loc.x/(float)loc.y) - robotPose->heading;
+	move.angular.z = relAngle > 0 ? min(2.84, relAngle*1.42) : max(-2.84,relAngle*1.42);
+	const float manhattandistance = max(abs(loc.x - robotPose->loc.x), abs(loc.y - robotPose->loc.y));
+	move.linear.x = min(0.22,manhattandistance/5.0);
+	return move;
 }
 
 Point Node::convertToMap(Map* m) const
@@ -235,13 +249,15 @@ geometry_msgs::msg::Twist RandomExplorer::nextMove()
 		}
 	} else
 	{
-		movement.linear.x = 0.25;
+		movement.linear.x = 0.15;
 	}
 	return movement;
 }
 
 geometry_msgs::msg::Twist Searcher::nextMove()
 {
-	geometry_msgs::msg::Twist movement;
+	const Point goal(100,100);
+	auto nextWayPoint = pathTo(goal).front();
+	geometry_msgs::msg::Twist movement = goTo(nextWayPoint);
 	return movement;
 }

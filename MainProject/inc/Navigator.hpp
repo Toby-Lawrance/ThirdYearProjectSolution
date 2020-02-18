@@ -64,6 +64,7 @@ public:
 	 virtual geometry_msgs::msg::Twist nextMove() = 0;
 
 	 vector<Point> pathTo(Point to);
+	 geometry_msgs::msg::Twist goTo(Point loc);
 
  private:
 	bool checkPixel(int y, int x);
