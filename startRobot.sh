@@ -1,5 +1,5 @@
-exec >> "running.log" 2> "error.log"
-
+exec >> "run.log" 2> "error.log"
+#Output nicely to files
 source install/setup.bash
 
 ros2 launch turtlebot3_bringup robot.launch.py &

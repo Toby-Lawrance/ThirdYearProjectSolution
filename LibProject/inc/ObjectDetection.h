@@ -16,7 +16,9 @@ public:
 	const int HorizontalThreshold = 45;
 	const int VerticalThreshold = 35;
 	const float contrastChange = 1.5;
-	const float minPctSize = 0.01;
+	const float minPctSize = 0.025;
+
+	float lastMultiplier = 1.0;
 
 	vector<possibleObject> detectedInFrame;
 

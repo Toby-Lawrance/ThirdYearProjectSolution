@@ -1,5 +1,6 @@
 #include "Navigator.hpp"
 
+#include <iostream>
 #include <set>
 #include <unordered_map>
 #include <memory>
@@ -10,6 +11,7 @@ using namespace std;
 
 vector<util::Point> getAndReducePath(Node* solvedGoal)
 {
+	cout << "We have a path!" << endl;
 	vector<util::Point> precisePath;
 	Node* n = solvedGoal;
 	while(n->parent != nullptr)
@@ -72,7 +74,7 @@ vector<util::Point> Navigator::pathTo(util::Point to)
 	frontier.insert(move(start));
 
 	map<util::Point,shared_ptr<Node>> KnownNodes;
-
+	cout << "About to path to: " << to.toString() << endl;
 	while(!frontier.empty())
 	{
 		auto current = *(frontier.begin());
@@ -95,6 +97,7 @@ vector<util::Point> Navigator::pathTo(util::Point to)
 			}
 
 		}
+		cout << "Still pathing" << endl;
 	}
 }
 
@@ -229,7 +232,7 @@ geometry_msgs::msg::Twist Explorer::nextMove()
 
 geometry_msgs::msg::Twist RandomExplorer::nextMove()
 {
-	const int checkRange = 20;
+	const int checkRange = 10;
 	cv::Point2f endPoint(robotPose->loc.x + checkRange * cos(robotPose->heading), robotPose->loc.y + checkRange * sin(robotPose->heading));
 	bool obstructed = lineCheckObstacle(endPoint);
 	geometry_msgs::msg::Twist movement;
@@ -237,20 +240,28 @@ geometry_msgs::msg::Twist RandomExplorer::nextMove()
 	movement.linear.x = 0.0;
 	if(obstructed)
 	{
-		std::mt19937 gen(rd());
-		std::uniform_real_distribution<float> dis(0.0, 1.0);
-		auto lrChoice = dis(gen);
-		if(lrChoice <= 0.5)
+		if(lastMove.linear.x != 0.0)
 		{
-			movement.angular.z = -0.25;
+			cout << "Obstacle, avoiding" << endl;
+			std::mt19937 gen(rd());
+			std::uniform_real_distribution<float> dis(0.0, 1.0);
+			auto lrChoice = dis(gen);
+			if(lrChoice <= 0.5)
+			{
+				movement.angular.z = -0.25;
+			} else
+			{
+				movement.angular.z = 0.25;
+			}
 		} else
 		{
-			movement.angular.z = 0.25;
+			return lastMove;
 		}
 	} else
 	{
 		movement.linear.x = 0.15;
 	}
+	lastMove = movement;
 	return movement;
 }
 

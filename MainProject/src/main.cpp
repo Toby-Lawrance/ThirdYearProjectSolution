@@ -46,17 +46,20 @@ using namespace chrono;
 		 Mat baseFrame;
 		 if (!Initialise_Camera(cap, videoWriter, baseFrame))
 		 {
-			 cin.get();
+			 cout << "Camera not working" << endl;
 			 return;
 		 }
-		 od =  std::make_unique<ObjectDetector>(baseFrame);
+		cout << "Camera initialised" << endl;
+		od =  std::make_unique<ObjectDetector>(baseFrame);
+		cout << "Object Detector initialised" << endl;
 		mapWriter = VideoWriter("map.avi",VideoWriter::fourcc('M', 'J', 'P', 'G'),5,Size(1000,1000),true);
 		movePub = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
 		odomSub = this->create_subscription<nav_msgs::msg::Odometry>("odom",10, bind(&ProcessorNavigator::odom_callback, this, placeholders::_1));
-
+		cout << "PubSub Initialised" << endl;
 		nav = chosenNav;
 		nav->navMap = &(od->detectionMap);
 		nav->robotPose = &currentRobotPose;
+		cout << "Node constructed" << endl;
 	 }
 
 	 ~ProcessorNavigator()
@@ -71,9 +74,6 @@ using namespace chrono;
 		currentRobotPose.loc.x = (int)(point.x*100.0);
 		currentRobotPose.loc.y = (int)(point.y*100.0);
 		currentRobotPose.heading = QuatToRadYaw(quat.x, quat.y, quat.z, quat.w);
-
-		auto move = nav->nextMove();
-		movePub->publish(move);
 	 }
 
 	 void processImg()
@@ -108,15 +108,26 @@ int main(int argc, char* argv[])
 	rclcpp::init(argc,argv);
 	cout << "Init OpenCV: " << CV_VERSION << endl;
 
-	//RandomExplorer re;
-	Searcher se;
-	auto node = make_shared<ProcessorNavigator>(&se);
+	RandomExplorer re;
+	//Searcher se;
+	auto node = make_shared<ProcessorNavigator>(&re);
+	cout << "Node made" << endl;
 	auto odomReset = node->create_publisher<std_msgs::msg::Empty>("reset", 10);
 	odomReset->publish(std_msgs::msg::Empty());
+	cout << "Reset Odometry" << endl;
 	while(rclcpp::ok())
 	{
+		auto t1 = high_resolution_clock::now();
 		node->processImg();
+		auto t2 = high_resolution_clock::now();
+		if(duration_cast<microseconds>(t2 - t1).count() > 1000)
+		{
+			cout << "Frame took longer than a second: " << to_string(duration_cast<microseconds>(t2 - t1).count()) << "ms" << endl;
+		}
 		rclcpp::spin_some(node);
+		auto move = node->nav->nextMove();
+		node->movePub->publish(move);
+		cout << "Updated movement" << endl;
 	}
 	rclcpp::shutdown();
 	return 0;

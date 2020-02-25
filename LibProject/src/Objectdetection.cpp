@@ -3,80 +3,100 @@
 #include "Statistics.h"
 #include "Camera.h"
 
+#include <iostream>
+
 using namespace cv;
+using namespace std;
 
 void ObjectDetector::processFrame(cv::Mat camFrame, Pose currentPose, bool drawGraph)
 {
 	Mat frame;
 
 	copyMakeBorder(camFrame, frame, borderAdditional, borderAdditional, borderAdditional, borderAdditional, BORDER_CONSTANT, Scalar(0, 0, 0));
-
+	cout << "Image bordered" << endl;
 	Mat lPlane = applyChannelFilter(frame) * contrastChange;
 	const Mat distant = increaseDistance(lPlane, distanceThreshold)*1.5;
 	lPlane = applyMask(lPlane, distant);
+	cout << "Image masked" << endl;
 	//Remove noise?
 	fastNlMeansDenoising(lPlane, lPlane);
 
 	auto rowCol = calculateRowColumnHistograms(lPlane);
+	cout << "Histograms calculated" << endl;
 
 	auto lightnessRow = rowCol.first;
 	auto lightnessCol = rowCol.second;
 
 	auto filteredRow = applyExponentialFilter<float>(lightnessRow, graphAlpha);
 	auto filteredCol = applyExponentialFilter<float>(lightnessCol, graphAlpha);
-
+	cout << "Expo filter applied" << endl;
 	auto rowChange = changeValue<float>(filteredRow);
 	auto colChange = changeValue<float>(filteredCol);
 
-	float rowThresh = calcThreshold(filteredRow, HorizontalThreshold);
-	float colThresh = calcThreshold(filteredCol, VerticalThreshold);
-
-	auto rowTriggers = changeDetect(rowChange, rowThresh);
-	rowTriggers = removeAdjacent<int>(rowTriggers);
-	auto colTriggers = changeDetect(colChange, colThresh);
-	colTriggers = removeAdjacent<int>(colTriggers);
-
-	vector<Point> intersects;
-
-	for (auto it = rowTriggers.begin(); it != rowTriggers.end(); ++it)
-	{
-		for (auto cit = colTriggers.begin(); cit != colTriggers.end(); ++cit)
-		{
-			Point intersect = Point(*cit, *it);
-			intersects.push_back(intersect);
-		}
-	}
-
+	const int maxPosObjs = 1500;
+	float thresholdMultiplier = lastMultiplier * 0.75;
 	vector<possibleObject> possible_objects;
-	if (intersects.size() > 1 && intersects.size() < 1000) //Arbritrary cap
+	vector<int> rowTriggers;
+	vector<int> colTriggers;
+	do
 	{
-		for (int i = 0; i < intersects.size() - 1; ++i)
+		possible_objects.clear();
+		float rowThresh = calcThreshold(filteredRow, HorizontalThreshold * thresholdMultiplier);
+		float colThresh = calcThreshold(filteredCol, VerticalThreshold * thresholdMultiplier);
+
+		rowTriggers = changeDetect(rowChange, rowThresh);
+		rowTriggers = removeAdjacent<int>(rowTriggers);
+		colTriggers = changeDetect(colChange, colThresh);
+		colTriggers = removeAdjacent<int>(colTriggers);
+
+		vector<Point> intersects;
+
+		for (auto it = rowTriggers.begin(); it != rowTriggers.end(); ++it)
 		{
-			Point x = intersects[i];
-			for (int j = i + 1; j < intersects.size(); ++j)
+			for (auto cit = colTriggers.begin(); cit != colTriggers.end(); ++cit)
 			{
-				Point y = intersects[j];
-
-				if (x.x == y.x || x.y == y.y) { continue; }
-				
-				auto r = Rect(x, y);
-				const float viewArea = frame.cols * frame.rows;
-				if (r.area() >= viewArea * minPctSize)
-				{
-					possible_objects.push_back(possibleObject(Rect(x, y)));
-				}
-
+				Point intersect = Point(*cit, *it);
+				intersects.push_back(intersect);
 			}
 		}
-	}
+		if (intersects.size() > 1 && intersects.size() < 1000) //Arbritrary cap
+		{
+			for (int i = 0; i < intersects.size() - 1; ++i)
+			{
+				Point x = intersects[i];
+				for (int j = i + 1; j < intersects.size(); ++j)
+				{
+					Point y = intersects[j];
 
+					if (x.x == y.x || x.y == y.y) { continue; }
+					
+					auto r = Rect(x, y);
+					const float viewArea = frame.cols * frame.rows;
+					if (r.area() >= viewArea * minPctSize)
+					{
+						possible_objects.push_back(possibleObject(Rect(x, y)));
+						if(possible_objects.size() > maxPosObjs)
+						{
+							break;
+						}
+					}
+				}
+				if(possible_objects.size() > maxPosObjs)
+				{
+					break;
+				}
+			}
+		}
+		thresholdMultiplier += 0.1;
+	} while (possible_objects.size() > maxPosObjs); //Attempting to bound the time it takes to run.
+	lastMultiplier = thresholdMultiplier;
 	std::sort(possible_objects.begin(), possible_objects.end());
-	
-	for (auto it = possible_objects.begin(); it != possible_objects.end(); ++it)
+	for (auto it = possible_objects.rbegin(); it != possible_objects.rend(); ++it)
 	{
 		it->computeAvgVal(distant);
 		if (it->avgVal <= 125) //Halfway value, meaning half or more of the box isn't on the object
 		{
+			possible_objects.erase(std::next(it).base()); //We use reverse looping and this weird iterator flick to remove the unimportant objects
 			it->avgVal = 0;
 		}
 		else if (it->avgVal > 230) //90% of the box is over the object
@@ -85,8 +105,9 @@ void ObjectDetector::processFrame(cv::Mat camFrame, Pose currentPose, bool drawG
 		}
 	}
 	std::sort(possible_objects.begin(), possible_objects.end());
+	cout << "Object thresholding complete" << endl;
 	auto detectedObjects = RemoveOverlaps(possible_objects);
-
+	cout << detectedObjects.size() << " detected objects in frame" << endl;
 	const float ObjectWidth = 3.8; //cm
 
 	for (auto it = detectedObjects.begin(); it != detectedObjects.end(); ++it)
@@ -119,11 +140,13 @@ void ObjectDetector::processFrame(cv::Mat camFrame, Pose currentPose, bool drawG
 			detectionMap.addMeasurement(currentPose, estimateDepth, it->maxMinAngles);
 		}
 	}
+	cout << "Depth estimation complete" << endl;
 
 	detectedInFrame = vector<possibleObject>(detectedObjects);
 	
 	if(drawGraph)
 	{
+		cout << "Graphing" << endl;
 		infoGraph = Graph(camFrame);
 		int graph_h = infoGraph.drawing.rows, graph_w = infoGraph.drawing.cols;
 
@@ -131,6 +154,7 @@ void ObjectDetector::processFrame(cv::Mat camFrame, Pose currentPose, bool drawG
 		{
 			rectangle(infoGraph.drawing, it->bounds, Scalar::all(it->avgVal), FILLED);
 		}
+		cout << "Rectangles drawn" << endl;
 
 		infoGraph.drawLineGraph<float>(filteredRow, Scalar(255, 0, 0), false);
 		infoGraph.drawLineGraph<float>(filteredCol, Scalar(0, 0, 255), true);
@@ -148,6 +172,8 @@ void ObjectDetector::processFrame(cv::Mat camFrame, Pose currentPose, bool drawG
 			infoGraph.drawLine(Point(v_bin_w * (*it), 0), Point(v_bin_w * (*it), graph_h), Scalar(0, 255, 0));
 		}
 
+		cout << "Triggers drawn" << endl;
+
 		for (auto it = detectedObjects.begin(); it != detectedObjects.end(); ++it)
 		{
 			int xMax, yMax, xMin, yMin;
@@ -164,6 +190,7 @@ void ObjectDetector::processFrame(cv::Mat camFrame, Pose currentPose, bool drawG
 			Point textLoc(it->bounds.x, it->bounds.y);
 			putText(infoGraph.drawing, depthMsg, textLoc, font, 1, Scalar::all(75), 2);
 		}
+		cout << "Object distance drawn" << endl;
 	}
 }
 

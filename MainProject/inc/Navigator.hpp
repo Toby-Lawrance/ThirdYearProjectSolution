@@ -84,6 +84,7 @@ public:
 
 class RandomExplorer : public Explorer
 {
+	geometry_msgs::msg::Twist lastMove;
 public:
 	virtual geometry_msgs::msg::Twist nextMove();
 };
