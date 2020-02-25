@@ -52,7 +52,7 @@ using namespace chrono;
 		cout << "Camera initialised" << endl;
 		od =  std::make_unique<ObjectDetector>(baseFrame);
 		cout << "Object Detector initialised" << endl;
-		mapWriter = VideoWriter("map.avi",VideoWriter::fourcc('M', 'J', 'P', 'G'),5,Size(1000,1000),true);
+		mapWriter = VideoWriter("map.avi",VideoWriter::fourcc('M', 'J', 'P', 'G'),1,Size(1000,1000),true);
 		movePub = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
 		odomSub = this->create_subscription<nav_msgs::msg::Odometry>("odom",10, bind(&ProcessorNavigator::odom_callback, this, placeholders::_1));
 		cout << "PubSub Initialised" << endl;

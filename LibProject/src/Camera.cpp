@@ -32,13 +32,13 @@ bool Initialise_Camera(VideoCapture& cap, VideoWriter& videoWriter, Mat& baseFra
 	}
 
 	
-	int frames_per_second = static_cast<int>(cap.get(CAP_PROP_FPS));//cap.get(CAP_PROP_XI_FRAMERATE);
+	int frames_per_second = static_cast<int>(cap.get(CAP_PROP_FPS));
 
 	cout << "Frame dimensions: " << frame.size() << endl;
 	cout << "FPS: " << frames_per_second << endl;
 
 	videoWriter = VideoWriter(fileName, VideoWriter::fourcc('M', 'J', 'P', 'G'),
-		frames_per_second, frame.size(), true);
+		1, frame.size(), true); //Honestly 1FPS is ideal right now
 
 	if (!videoWriter.isOpened())
 	{
