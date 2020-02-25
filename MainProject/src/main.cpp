@@ -74,6 +74,11 @@ using namespace chrono;
 		currentRobotPose.loc.x = (int)(point.x*100.0);
 		currentRobotPose.loc.y = (int)(point.y*100.0);
 		currentRobotPose.heading = QuatToRadYaw(quat.x, quat.y, quat.z, quat.w);
+
+		auto move = nav->nextMove();
+                movePub->publish(move);
+                cout << "Updated movement: LinX:" << move.linear.x << " AngularZ:" << move.angular.z  << endl;
+
 	 }
 
 	 void processImg()
@@ -120,15 +125,11 @@ int main(int argc, char* argv[])
 		auto t1 = high_resolution_clock::now();
 		node->processImg();
 		auto t2 = high_resolution_clock::now();
-		if(duration_cast<microseconds>(t2 - t1).count() > 1000)
+		if(duration_cast<milliseconds>(t2 - t1).count() > 1000)
 		{
-			cout << "Frame took longer than a second: " << to_string(duration_cast<microseconds>(t2 - t1).count()) << "ms" << endl;
+			cout << "Frame took longer than a second: " << to_string(duration_cast<milliseconds>(t2 - t1).count()) << "ms" << endl;
 		}
 		rclcpp::spin_some(node);
-		auto move = node->nav->nextMove();
-		node->movePub->publish(move);
-		cout << "Updated movement" << endl;
 	}
-	rclcpp::shutdown();
 	return 0;
 }

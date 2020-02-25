@@ -179,7 +179,10 @@ bool Navigator::checkLineHigh(int x0, int y0, int x1, int y1)
 
 	for (int y = y0; y <= y1; ++y)
 	{
-		if(checkPixel(x, y)) {return true;}
+		if(checkPixel(x, y)) {
+			cout << "obstacle at: " << x << "," << y << endl;
+			return true;
+		}
 		if (D > 0)
 		{
 			x = x + xi;
@@ -207,7 +210,10 @@ bool Navigator::checkLineLow(int x0, int y0, int x1, int y1)
 
 	for(int x = x0; x <= x1; ++x)
 	{
-		if(checkPixel(x, y)) {return true;}
+		if(checkPixel(x, y)) {
+                        cout << "obstacle at: " << x << "," << y << endl;
+                        return true;
+                }
 		if(D > 0)
 		{
 			y = y + yi;
@@ -233,7 +239,9 @@ geometry_msgs::msg::Twist Explorer::nextMove()
 geometry_msgs::msg::Twist RandomExplorer::nextMove()
 {
 	const int checkRange = 10;
+	cout << "Robot at:" << robotPose->loc.x << "," << robotPose->loc.y << endl;
 	cv::Point2f endPoint(robotPose->loc.x + checkRange * cos(robotPose->heading), robotPose->loc.y + checkRange * sin(robotPose->heading));
+	cout << "Checking to:" << endPoint.x << "," << endPoint.y << endl;
 	bool obstructed = lineCheckObstacle(endPoint);
 	geometry_msgs::msg::Twist movement;
 	movement.angular.z = 0.0;
@@ -255,12 +263,14 @@ geometry_msgs::msg::Twist RandomExplorer::nextMove()
 			}
 		} else
 		{
+			cout << "Reusing last move" << endl;
 			return lastMove;
 		}
 	} else
 	{
 		movement.linear.x = 0.15;
 	}
+	cout << "Movement: Linx:" << movement.linear.x << " Angularz:" << movement.angular.z << endl;
 	lastMove = movement;
 	return movement;
 }
