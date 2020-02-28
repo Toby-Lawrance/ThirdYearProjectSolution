@@ -33,7 +33,7 @@ void ObjectDetector::processFrame(cv::Mat camFrame, Pose currentPose, bool drawG
 	auto rowChange = changeValue<float>(filteredRow);
 	auto colChange = changeValue<float>(filteredCol);
 
-	const int maxPosObjs = 1500;
+	const int maxPosObjs = 500;
 	float thresholdMultiplier = lastMultiplier * 0.75;
 	vector<possibleObject> possible_objects;
 	vector<int> rowTriggers;
@@ -194,19 +194,16 @@ void ObjectDetector::processFrame(cv::Mat camFrame, Pose currentPose, bool drawG
 	}
 }
 
+//BOTTLENECK
+/* Known assumptions:
+ *	possibleObjects are sorted by AvgValue, then by size. AvgVal is more important, where equal, bigger. Reverse order
+ */
 vector<possibleObject> ObjectDetector::RemoveOverlaps(vector<possibleObject> sortedData)
 {
 	if (sortedData.size() < 2) { return sortedData; }
-	reverse(sortedData.begin(), sortedData.end());
-	for (auto it = sortedData.begin(); it != sortedData.end(); ++it)
+	for (auto it = sortedData.rbegin(); it != sortedData.rend(); ++it)
 	{
-		if (it->avgVal == 0)
-		{
-			sortedData.erase(it);
-			it = sortedData.begin();
-		}
-
-		for (auto cit = it; cit != sortedData.end(); ++cit)
+		for (auto cit = it; cit != sortedData.rend(); ++cit)
 		{
 			if (it == cit)
 			{
@@ -217,7 +214,7 @@ vector<possibleObject> ObjectDetector::RemoveOverlaps(vector<possibleObject> sor
 
 			if (overlaps)
 			{
-				sortedData.erase(cit);
+				sortedData.erase(next(cit).base());
 				cit = it;
 			}
 		}

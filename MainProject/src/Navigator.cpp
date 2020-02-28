@@ -248,7 +248,7 @@ geometry_msgs::msg::Twist RandomExplorer::nextMove()
 	movement.linear.x = 0.0;
 	if(obstructed)
 	{
-		if(lastMove.linear.x != 0.0)
+		if(lastMove.angular.z != 0 || lastMove.linear.x == 0) //If already turning or no move yet set.
 		{
 			cout << "Obstacle, avoiding" << endl;
 			std::mt19937 gen(rd());

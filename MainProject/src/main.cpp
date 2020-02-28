@@ -23,7 +23,7 @@ using namespace chrono;
  class ProcessorNavigator : public rclcpp::Node
  {
   public:
-	 int graph = 1; //Set to 1 for graph drawing on the videoOutput
+	 int graph = 0; //Set to 1 for graph drawing on the videoOutput
 
 	 rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr movePub;
 	 rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odomSub;
