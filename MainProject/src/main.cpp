@@ -74,7 +74,7 @@ using namespace chrono;
 		currentRobotPose.loc.x = (int)(point.x*100.0);
 		currentRobotPose.loc.y = (int)(point.y*100.0);
 		currentRobotPose.heading = QuatToRadYaw(quat.x, quat.y, quat.z, quat.w);
-
+		cout << "Robot pose: " << currentRobotPose.toString() << endl;
 		auto move = nav->nextMove();
                 movePub->publish(move);
                 cout << "Updated movement: LinX:" << move.linear.x << " AngularZ:" << move.angular.z  << endl;

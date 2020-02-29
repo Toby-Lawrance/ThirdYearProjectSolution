@@ -246,9 +246,11 @@ geometry_msgs::msg::Twist RandomExplorer::nextMove()
 	geometry_msgs::msg::Twist movement;
 	movement.angular.z = 0.0;
 	movement.linear.x = 0.0;
+	obstructed = false;
+
 	if(obstructed)
 	{
-		if(lastMove.angular.z != 0 || lastMove.linear.x == 0) //If already turning or no move yet set.
+		if(lastMove.angular.z == 0 || lastMove.linear.x > 0)
 		{
 			cout << "Obstacle, avoiding" << endl;
 			std::mt19937 gen(rd());
@@ -261,15 +263,13 @@ geometry_msgs::msg::Twist RandomExplorer::nextMove()
 			{
 				movement.angular.z = 0.25;
 			}
-		} else
-		{
-			cout << "Reusing last move" << endl;
-			return lastMove;
+			lastMove = movement;
+			return movement;
 		}
-	} else
-	{
-		movement.linear.x = 0.15;
+		return lastMove;
 	}
+
+	movement.linear.x = 0.15;
 	cout << "Movement: Linx:" << movement.linear.x << " Angularz:" << movement.angular.z << endl;
 	lastMove = movement;
 	return movement;

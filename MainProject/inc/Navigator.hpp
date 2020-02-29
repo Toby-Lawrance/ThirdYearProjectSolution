@@ -9,7 +9,7 @@ class Node
 {
  public:
 	util::Point loc;
-	Node* parent;
+	Node* parent = nullptr;
 	float gCost,hCost,fCost;
 
 	Node(util::Point s, Node* p, float path) : loc(s),parent(p),gCost(path) {}
@@ -57,8 +57,8 @@ class Node
 class Navigator
 {
 public:
-	Map* navMap;
-	Pose* robotPose;
+	Map* navMap = nullptr;
+	Pose* robotPose = nullptr;
 	std::random_device rd;
 
 	 bool lineCheckObstacle(cv::Point2f checkPoint);
