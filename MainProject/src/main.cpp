@@ -30,6 +30,10 @@ using namespace chrono;
 
 	 geometry_msgs::msg::Twist::SharedPtr movementState;
 	 nav_msgs::msg::Odometry::SharedPtr odometryState;
+	 bool firstReset = false;
+	 Pose offset;
+
+	 bool needsRenav = true;
 
 	 Pose currentRobotPose;
 	 std::unique_ptr<ObjectDetector> od;
@@ -69,16 +73,27 @@ using namespace chrono;
 
 	 void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg)
 	 {
+	 	if(!firstReset)
+		{
+	 		firstReset = true;
+			auto point = msg->pose.pose.position;
+			auto quat = msg->pose.pose.orientation;
+			offset.loc.x = (int)(point.x*100.0);
+			offset.loc.y = (int)(point.y*100.0);
+			offset.heading = QuatToRadYaw(quat.x, quat.y, quat.z, quat.w);
+		}
 		auto point = msg->pose.pose.position;
 		auto quat = msg->pose.pose.orientation;
-		currentRobotPose.loc.x = (int)(point.x*100.0);
-		currentRobotPose.loc.y = (int)(point.y*100.0);
-		currentRobotPose.heading = QuatToRadYaw(quat.x, quat.y, quat.z, quat.w);
+		currentRobotPose.loc.x = (int)(point.x*100.0) - offset.loc.x;
+		currentRobotPose.loc.y = (int)(point.y*100.0) - offset.loc.y;
+		currentRobotPose.heading = QuatToRadYaw(quat.x, quat.y, quat.z, quat.w) - offset.heading;
 		cout << "Robot pose: " << currentRobotPose.toString() << endl;
-		auto move = nav->nextMove();
-                movePub->publish(move);
-                cout << "Updated movement: LinX:" << move.linear.x << " AngularZ:" << move.angular.z  << endl;
-
+		if(needsRenav)
+		{
+			auto move = nav->nextMove();
+			movePub->publish(move);
+			cout << "Updated movement: LinX:" << move.linear.x << " AngularZ:" << move.angular.z  << endl;
+		}
 	 }
 
 	 void processImg()
@@ -125,6 +140,7 @@ int main(int argc, char* argv[])
 		auto t1 = high_resolution_clock::now();
 		node->processImg();
 		auto t2 = high_resolution_clock::now();
+		node->needsRenav = true;
 		if(duration_cast<milliseconds>(t2 - t1).count() > 1000)
 		{
 			cout << "Frame took longer than a second: " << to_string(duration_cast<milliseconds>(t2 - t1).count()) << "ms" << endl;

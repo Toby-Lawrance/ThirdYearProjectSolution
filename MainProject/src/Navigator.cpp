@@ -134,7 +134,7 @@ util::Point Node::convertToPath(Map* m, util::Point mapLoc)
 
 bool Navigator::lineCheckObstacle(cv::Point2f checkPoint)
 {
-	cv::Point2f start = cv::Point2f(robotPose->loc.x,robotPose->loc.y);
+	cv::Point2f start = cv::Point2f(navMap->getMapCentre().x + robotPose->loc.x,navMap->getMapCentre().y + robotPose->loc.y);
 	const int x0 = start.x;
 	const int y0 = start.y;
 	const int x1 = checkPoint.x;
@@ -227,7 +227,8 @@ bool Navigator::checkLineLow(int x0, int y0, int x1, int y1)
 bool Navigator::checkPixel(int y, int x) //Flip it because of dimensions
 {
 	auto pixel = navMap->map.at<uchar>(x-1, y-1);
-	return pixel > 1;
+	cout << "Pixel value at: (" << x << "," << y << "): " << pixel << endl;
+	return pixel > 10;
 }
 
 geometry_msgs::msg::Twist Explorer::nextMove()
@@ -239,14 +240,14 @@ geometry_msgs::msg::Twist Explorer::nextMove()
 geometry_msgs::msg::Twist RandomExplorer::nextMove()
 {
 	const int checkRange = 10;
-	cout << "Robot at:" << robotPose->loc.x << "," << robotPose->loc.y << endl;
-	cv::Point2f endPoint(robotPose->loc.x + checkRange * cos(robotPose->heading), robotPose->loc.y + checkRange * sin(robotPose->heading));
+	cout << "Robot at: (" << (navMap->getMapCentre().x +  robotPose->loc.x) << "," << (navMap->getMapCentre().y +  robotPose->loc.y) << ") on map" << endl;
+	cv::Point2f endPoint(navMap->getMapCentre().x + robotPose->loc.x + checkRange * cos(robotPose->heading),navMap->getMapCentre().y + robotPose->loc.y + checkRange * sin(robotPose->heading));
 	cout << "Checking to:" << endPoint.x << "," << endPoint.y << endl;
 	bool obstructed = lineCheckObstacle(endPoint);
 	geometry_msgs::msg::Twist movement;
 	movement.angular.z = 0.0;
 	movement.linear.x = 0.0;
-	obstructed = false;
+	//obstructed = false;
 
 	if(obstructed)
 	{

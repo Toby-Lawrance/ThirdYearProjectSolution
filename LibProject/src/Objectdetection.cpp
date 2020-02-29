@@ -13,23 +13,19 @@ void ObjectDetector::processFrame(cv::Mat camFrame, Pose currentPose, bool drawG
 	Mat frame;
 
 	copyMakeBorder(camFrame, frame, borderAdditional, borderAdditional, borderAdditional, borderAdditional, BORDER_CONSTANT, Scalar(0, 0, 0));
-	cout << "Image bordered" << endl;
 	Mat lPlane = applyChannelFilter(frame) * contrastChange;
 	const Mat distant = increaseDistance(lPlane, distanceThreshold)*1.5;
 	lPlane = applyMask(lPlane, distant);
-	cout << "Image masked" << endl;
 	//Remove noise?
 	fastNlMeansDenoising(lPlane, lPlane);
 
 	auto rowCol = calculateRowColumnHistograms(lPlane);
-	cout << "Histograms calculated" << endl;
 
 	auto lightnessRow = rowCol.first;
 	auto lightnessCol = rowCol.second;
 
 	auto filteredRow = applyExponentialFilter<float>(lightnessRow, graphAlpha);
 	auto filteredCol = applyExponentialFilter<float>(lightnessCol, graphAlpha);
-	cout << "Expo filter applied" << endl;
 	auto rowChange = changeValue<float>(filteredRow);
 	auto colChange = changeValue<float>(filteredCol);
 
@@ -88,6 +84,7 @@ void ObjectDetector::processFrame(cv::Mat camFrame, Pose currentPose, bool drawG
 			}
 		}
 		thresholdMultiplier += 0.1;
+		cout << "Possible Objects found at Multiplier:" << std::to_string(thresholdMultiplier) << " :" << possible_objects.size() << endl;
 	} while (possible_objects.size() > maxPosObjs); //Attempting to bound the time it takes to run.
 	lastMultiplier = thresholdMultiplier;
 	std::sort(possible_objects.begin(), possible_objects.end());
@@ -105,12 +102,12 @@ void ObjectDetector::processFrame(cv::Mat camFrame, Pose currentPose, bool drawG
 		}
 	}
 	std::sort(possible_objects.begin(), possible_objects.end());
-	cout << "Object thresholding complete" << endl;
+	cout << "Object thresholding complete on: " << possible_objects.size() << " possible objects" << endl;
 	auto detectedObjects = RemoveOverlaps(possible_objects);
 	cout << detectedObjects.size() << " detected objects in frame" << endl;
 	const float ObjectWidth = 3.8; //cm
 
-	for (auto it = detectedObjects.begin(); it != detectedObjects.end(); ++it)
+	for (auto it = detectedObjects.rbegin(); it != detectedObjects.rend(); ++it)
 	{
 		const float xyRatio = it->bounds.width / it->bounds.height;
 		if(xyRatio < 1) //taller than wide
@@ -118,7 +115,7 @@ void ObjectDetector::processFrame(cv::Mat camFrame, Pose currentPose, bool drawG
 			const float heightRatio = it->bounds.height / it->bounds.width;
 			if(heightRatio > 3) //Strange artifact
 			{
-				//it->estimatedSize = Size2f(0, 0);
+				continue;
 			}
 			const float height = heightRatio * ObjectWidth;
 			it->estimatedSize = Size2f(ObjectWidth, height);
@@ -127,7 +124,7 @@ void ObjectDetector::processFrame(cv::Mat camFrame, Pose currentPose, bool drawG
 			const float widthRatio = xyRatio;
 			if (widthRatio > 3) //Strange artifact
 			{
-				it->estimatedSize = Size2f(0, 0);
+				continue;
 			}
 			const float width = widthRatio * ObjectWidth;
 			it->estimatedSize = Size2f(width, ObjectWidth);
