@@ -23,7 +23,7 @@ using namespace chrono;
  class ProcessorNavigator : public rclcpp::Node
  {
   public:
-	 int graph = 0; //Set to 1 for graph drawing on the videoOutput
+	 int graph = 1; //Set to 1 for graph drawing on the videoOutput
 
 	 rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr movePub;
 	 rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odomSub;
@@ -87,12 +87,13 @@ using namespace chrono;
 		currentRobotPose.loc.x = (int)(point.x*100.0) - offset.loc.x;
 		currentRobotPose.loc.y = (int)(point.y*100.0) - offset.loc.y;
 		currentRobotPose.heading = QuatToRadYaw(quat.x, quat.y, quat.z, quat.w) - offset.heading;
-		cout << "Robot pose: " << currentRobotPose.toString() << endl;
 		if(needsRenav)
 		{
+			cout << "Robot pose: " << currentRobotPose.toString() << endl;
 			auto move = nav->nextMove();
 			movePub->publish(move);
 			cout << "Updated movement: LinX:" << move.linear.x << " AngularZ:" << move.angular.z  << endl;
+			needsRenav = false;
 		}
 	 }
 
@@ -147,5 +148,6 @@ int main(int argc, char* argv[])
 		}
 		rclcpp::spin_some(node);
 	}
+	rclcpp::shutdown();
 	return 0;
 }

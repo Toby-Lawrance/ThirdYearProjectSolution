@@ -69,6 +69,7 @@ void Map::incrementPixel(int y, int x) //Flip it because of dimensions
 	if(pixel < 255)
 	{
 		pixel = pixel == 0 ? 1 : max(255, pixel * 10);
+		//pixel = 255; //Test harsh
 		map.at<uchar>(x-1, y-1) = pixel;
 	}
 }

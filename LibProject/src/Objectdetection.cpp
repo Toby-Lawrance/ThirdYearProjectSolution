@@ -87,7 +87,7 @@ void ObjectDetector::processFrame(cv::Mat camFrame, Pose currentPose, bool drawG
 		cout << "Possible Objects found at Multiplier:" << std::to_string(thresholdMultiplier) << " :" << possible_objects.size() << endl;
 	} while (possible_objects.size() > maxPosObjs); //Attempting to bound the time it takes to run.
 	lastMultiplier = thresholdMultiplier;
-	std::sort(possible_objects.begin(), possible_objects.end());
+	std::sort(possible_objects.rbegin(), possible_objects.rend());
 	for (auto it = possible_objects.rbegin(); it != possible_objects.rend(); ++it)
 	{
 		it->computeAvgVal(distant);
@@ -101,7 +101,7 @@ void ObjectDetector::processFrame(cv::Mat camFrame, Pose currentPose, bool drawG
 			it->avgVal = 255;
 		}
 	}
-	std::sort(possible_objects.begin(), possible_objects.end());
+	std::sort(possible_objects.rbegin(), possible_objects.rend());
 	cout << "Object thresholding complete on: " << possible_objects.size() << " possible objects" << endl;
 	auto detectedObjects = RemoveOverlaps(possible_objects);
 	cout << detectedObjects.size() << " detected objects in frame" << endl;
@@ -115,7 +115,8 @@ void ObjectDetector::processFrame(cv::Mat camFrame, Pose currentPose, bool drawG
 			const float heightRatio = it->bounds.height / it->bounds.width;
 			if(heightRatio > 3) //Strange artifact
 			{
-				continue;
+				cout << "Artifact?" << endl;
+				//continue;
 			}
 			const float height = heightRatio * ObjectWidth;
 			it->estimatedSize = Size2f(ObjectWidth, height);
@@ -124,7 +125,8 @@ void ObjectDetector::processFrame(cv::Mat camFrame, Pose currentPose, bool drawG
 			const float widthRatio = xyRatio;
 			if (widthRatio > 3) //Strange artifact
 			{
-				continue;
+				cout << "Artifact?" << endl;
+				//continue;
 			}
 			const float width = widthRatio * ObjectWidth;
 			it->estimatedSize = Size2f(width, ObjectWidth);
@@ -133,8 +135,12 @@ void ObjectDetector::processFrame(cv::Mat camFrame, Pose currentPose, bool drawG
 		float estimateDepth = it->computeDistance(it->estimatedSize, Size2f(frame.cols, frame.rows), Size2f(HorizontalFOV, VerticalFOV), focalLength);
 		if(estimateDepth > 0.0)
 		{
+			cout << "Object at: " << to_string(estimateDepth) << "cm" << endl;
 			it->estimatedDistance = estimateDepth;
 			detectionMap.addMeasurement(currentPose, estimateDepth, it->maxMinAngles);
+		} else
+		{
+			cout << "Object beyond reasonable estimate" << endl;
 		}
 	}
 	cout << "Depth estimation complete" << endl;
@@ -197,11 +203,14 @@ void ObjectDetector::processFrame(cv::Mat camFrame, Pose currentPose, bool drawG
  */
 vector<possibleObject> ObjectDetector::RemoveOverlaps(vector<possibleObject> sortedData)
 {
+	int mainCount = 0, innerCount = 0;
 	if (sortedData.size() < 2) { return sortedData; }
-	for (auto it = sortedData.rbegin(); it != sortedData.rend(); ++it)
+	for (auto it = sortedData.begin(); it < sortedData.end(); it++)
 	{
-		for (auto cit = it; cit != sortedData.rend(); ++cit)
+		cout << "Main loop: " << (++mainCount) << endl;
+		for (auto cit = it + 1; cit < sortedData.end(); cit++)
 		{
+			cout << "Inner loop: " << (++innerCount) << endl;
 			if (it == cit)
 			{
 				continue;
@@ -211,11 +220,10 @@ vector<possibleObject> ObjectDetector::RemoveOverlaps(vector<possibleObject> sor
 
 			if (overlaps)
 			{
-				sortedData.erase(next(cit).base());
-				cit = it;
+				sortedData.erase(cit);
+				cit = it + 1;
 			}
 		}
 	}
-
 	return sortedData;
 }

@@ -16,7 +16,7 @@ public:
 	const int HorizontalThreshold = 45;
 	const int VerticalThreshold = 35;
 	const float contrastChange = 1.5;
-	const float minPctSize = 0.025;
+	const float minPctSize = 0.00;
 
 	float lastMultiplier = 1.0;
 

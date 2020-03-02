@@ -227,8 +227,8 @@ bool Navigator::checkLineLow(int x0, int y0, int x1, int y1)
 bool Navigator::checkPixel(int y, int x) //Flip it because of dimensions
 {
 	auto pixel = navMap->map.at<uchar>(x-1, y-1);
-	cout << "Pixel value at: (" << x << "," << y << "): " << pixel << endl;
-	return pixel > 10;
+	cout << "Pixel value at: (" << x << "," << y << "): " << static_cast<int>(pixel) << endl;
+	return pixel > 1;
 }
 
 geometry_msgs::msg::Twist Explorer::nextMove()
@@ -239,11 +239,15 @@ geometry_msgs::msg::Twist Explorer::nextMove()
 
 geometry_msgs::msg::Twist RandomExplorer::nextMove()
 {
-	const int checkRange = 10;
+	const int checkRange = 15;
 	cout << "Robot at: (" << (navMap->getMapCentre().x +  robotPose->loc.x) << "," << (navMap->getMapCentre().y +  robotPose->loc.y) << ") on map" << endl;
 	cv::Point2f endPoint(navMap->getMapCentre().x + robotPose->loc.x + checkRange * cos(robotPose->heading),navMap->getMapCentre().y + robotPose->loc.y + checkRange * sin(robotPose->heading));
+	cv::Point2f endPointH(navMap->getMapCentre().x + robotPose->loc.x + checkRange * cos(robotPose->heading+0.1),navMap->getMapCentre().y + robotPose->loc.y + checkRange * sin(robotPose->heading+0.1));
+	cv::Point2f endPointL(navMap->getMapCentre().x + robotPose->loc.x + checkRange * cos(robotPose->heading-0.1),navMap->getMapCentre().y + robotPose->loc.y + checkRange * sin(robotPose->heading-0.1));
 	cout << "Checking to:" << endPoint.x << "," << endPoint.y << endl;
-	bool obstructed = lineCheckObstacle(endPoint);
+	cout << "Checking to:" << endPointH.x << "," << endPointH.y << endl;
+	cout << "Checking to:" << endPointL.x << "," << endPointL.y << endl;
+	bool obstructed = lineCheckObstacle(endPoint) || lineCheckObstacle(endPointH) || lineCheckObstacle(endPointL);
 	geometry_msgs::msg::Twist movement;
 	movement.angular.z = 0.0;
 	movement.linear.x = 0.0;
@@ -259,10 +263,10 @@ geometry_msgs::msg::Twist RandomExplorer::nextMove()
 			auto lrChoice = dis(gen);
 			if(lrChoice <= 0.5)
 			{
-				movement.angular.z = -0.25;
+				movement.angular.z = -0.1;
 			} else
 			{
-				movement.angular.z = 0.25;
+				movement.angular.z = 0.1;
 			}
 			lastMove = movement;
 			return movement;
@@ -270,7 +274,7 @@ geometry_msgs::msg::Twist RandomExplorer::nextMove()
 		return lastMove;
 	}
 
-	movement.linear.x = 0.15;
+	movement.linear.x = 0.01;
 	cout << "Movement: Linx:" << movement.linear.x << " Angularz:" << movement.angular.z << endl;
 	lastMove = movement;
 	return movement;
