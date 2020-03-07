@@ -86,7 +86,7 @@ using namespace chrono;
 		auto quat = msg->pose.pose.orientation;
 		currentRobotPose.loc.x = (int)(point.x*100.0) - offset.loc.x;
 		currentRobotPose.loc.y = (int)(point.y*100.0) - offset.loc.y;
-		currentRobotPose.heading = QuatToRadYaw(quat.x, quat.y, quat.z, quat.w) - offset.heading;
+		currentRobotPose.heading = (QuatToRadYaw(quat.x, quat.y, quat.z, quat.w) - offset.heading);
 		if(needsRenav)
 		{
 			cout << "Robot pose: " << currentRobotPose.toString() << endl;
@@ -129,9 +129,14 @@ int main(int argc, char* argv[])
 	rclcpp::init(argc,argv);
 	cout << "Init OpenCV: " << CV_VERSION << endl;
 
-	RandomExplorer re;
-	//Searcher se;
-	auto node = make_shared<ProcessorNavigator>(&re);
+	Explorer e;
+	e.minX = -10;
+	e.maxX = 90;
+	e.minY = -10;
+	e.maxY = 90;
+	//RandomExplorer e;
+	//Searcher e;
+	auto node = make_shared<ProcessorNavigator>(&e);
 	cout << "Node made" << endl;
 	auto odomReset = node->create_publisher<std_msgs::msg::Empty>("reset", 10);
 	odomReset->publish(std_msgs::msg::Empty());

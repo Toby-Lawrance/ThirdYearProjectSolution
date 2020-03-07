@@ -227,19 +227,32 @@ bool Navigator::checkLineLow(int x0, int y0, int x1, int y1)
 bool Navigator::checkPixel(int y, int x) //Flip it because of dimensions
 {
 	auto pixel = navMap->map.at<uchar>(x-1, y-1);
-	cout << "Pixel value at: (" << x << "," << y << "): " << static_cast<int>(pixel) << endl;
 	return pixel > 1;
 }
 
 geometry_msgs::msg::Twist Explorer::nextMove()
 {
-	geometry_msgs::msg::Twist movement;
-	return movement;
+	if(robotPose->loc.x < minX || robotPose->loc.y < minY || robotPose->loc.x > maxX || robotPose->loc.y > maxY)
+	{
+		util::Point centre((maxX+minX)/2,(maxY+minY)/2);
+		cout << "Out of bounds, pathing to: " << centre.toString() << endl;
+		auto nextWayPoint = pathTo(centre).front();
+		return goTo(nextWayPoint);
+	}
+
+	//If we're in bounds, lets path to a random point inside
+	std::mt19937 gen(rd());
+	std::uniform_int_distribution<> disX(minX, maxX);
+	std::uniform_int_distribution<> disY(minY, maxY);
+
+	util::Point newLoc(disX(gen),disY(gen)); //Pick a random point in bounds
+	auto nextWayPoint = pathTo(newLoc).front();
+	return goTo(nextWayPoint);
 }
 
 geometry_msgs::msg::Twist RandomExplorer::nextMove()
 {
-	const int checkRange = 15;
+	const int checkRange = 7;
 	cout << "Robot at: (" << (navMap->getMapCentre().x +  robotPose->loc.x) << "," << (navMap->getMapCentre().y +  robotPose->loc.y) << ") on map" << endl;
 	cv::Point2f endPoint(navMap->getMapCentre().x + robotPose->loc.x + checkRange * cos(robotPose->heading),navMap->getMapCentre().y + robotPose->loc.y + checkRange * sin(robotPose->heading));
 	cv::Point2f endPointH(navMap->getMapCentre().x + robotPose->loc.x + checkRange * cos(robotPose->heading+0.1),navMap->getMapCentre().y + robotPose->loc.y + checkRange * sin(robotPose->heading+0.1));
@@ -275,7 +288,6 @@ geometry_msgs::msg::Twist RandomExplorer::nextMove()
 	}
 
 	movement.linear.x = 0.01;
-	cout << "Movement: Linx:" << movement.linear.x << " Angularz:" << movement.angular.z << endl;
 	lastMove = movement;
 	return movement;
 }

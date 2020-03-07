@@ -34,7 +34,7 @@ void Map::addMeasurement(Pose currentPose, float depth, Size2f& maxMinAngles)
 
 	//In order to prevent the robot hitting things, we will slightly spread the angle, this brings the line slightly closer and makes it slightly wider
 	//This should prevent the robot from clipping the objects
-	const float diffChange = abs(maxMinAngles.width - maxMinAngles.height) * 0.1;
+	const float diffChange = 0.1;
 	maxMinAngles.width -= diffChange;
 	maxMinAngles.height += diffChange;
 	
