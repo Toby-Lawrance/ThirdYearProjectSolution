@@ -11,8 +11,8 @@ public:
 	Graph infoGraph;
 
 	const int borderAdditional = 3;
-	const int distanceThreshold = 70;
-	const float graphAlpha = 0.7;
+	const int distanceThreshold = 50;
+	const float graphAlpha = 0.6;
 	const int HorizontalThreshold = 45;
 	const int VerticalThreshold = 35;
 	const float contrastChange = 1.5;

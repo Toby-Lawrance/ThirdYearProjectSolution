@@ -1,6 +1,7 @@
 #include "Navigator.hpp"
 
 #include <iostream>
+#include <queue>
 #include <set>
 #include <unordered_map>
 #include <memory>
@@ -9,12 +10,12 @@
 
 using namespace std;
 
-vector<util::Point> getAndReducePath(Node* solvedGoal)
+vector<util::Point> getAndReducePath(shared_ptr<Node> solvedGoal)
 {
 	cout << "We have a path!" << endl;
 	vector<util::Point> precisePath;
-	Node* n = solvedGoal;
-	while(n->parent != nullptr)
+	auto n = solvedGoal;
+	while(n->parent)
 	{
 		precisePath.push_back(n->loc);
 		n = n->parent;
@@ -25,6 +26,7 @@ vector<util::Point> getAndReducePath(Node* solvedGoal)
 	int wayPointRef = 0;
 	util::Point diff;
 	int splitCount = 1;
+	cout << "Precise path length: " << precisePath.size() << endl;
 	for(auto it = precisePath.rbegin()+1; it != precisePath.rend(); it++)
 	{
 		const auto change = waypointPath[wayPointRef] - *it;
@@ -50,7 +52,7 @@ vector<util::Point> getAndReducePath(Node* solvedGoal)
 	return waypointPath;
 }
 
-vector<util::Point> getNeighbours(util::Point p)
+vector<util::Point> Explorer::getNeighbours(util::Point p)
 {
 	vector<util::Point> neighbours;
 	for(int x = -1; x <= 1; x++)
@@ -58,58 +60,67 @@ vector<util::Point> getNeighbours(util::Point p)
 		for(int y = -1; y<=1; y++)
 		{
 			if(x == 0 && y == 0) { continue; }
-
-			neighbours.push_back(util::Point(x,y));
+			int newX = p.x + x,newY = p.y + y;
+			if((newX < minX) || (newX > maxX) || (newY < minY) || (newY > maxY))
+			{
+				continue;
+			} //Skip neighbours that would be out of bounds
+			neighbours.push_back(util::Point(newX,newY));
 		}
 	}
 	return neighbours;
 }
 
-vector<util::Point> Navigator::pathTo(util::Point to)
+vector<util::Point> Explorer::pathTo(util::Point to)
 {
 	auto goal = make_shared<Node>(to, nullptr,0);
-	auto frontier = set<shared_ptr<Node>>();
+	auto frontier = priority_queue<shared_ptr<Node>>();
 	auto start = make_shared<Node>(robotPose->loc, nullptr,0);
 	start->calculateF(*goal,navMap);
-	frontier.insert(move(start));
+	frontier.push(move(start));
 
 	map<util::Point,shared_ptr<Node>> KnownNodes;
 	cout << "About to path to: " << to.toString() << endl;
-	while(!frontier.empty())
+	while(!frontier.empty() && frontier.size() < 50000)
 	{
-		auto current = *(frontier.begin());
+		auto current = (frontier.top());
+		frontier.pop();
 		KnownNodes[current->loc] = current;
 
 		if(current->loc == goal->loc)
-		{return getAndReducePath(current.get());}
+		{return getAndReducePath(current);}
 
 		auto neighbours = getNeighbours(current->loc);
 		for(auto it = neighbours.begin(); it != neighbours.end(); it++)
 		{
-			auto newNode = make_shared<Node>(*it,current.get(),current->gCost + 1);
+			auto newNode = make_shared<Node>(*it,current,current->gCost + 1);
 			if(KnownNodes.count(*it) == 0)
 			{
 				newNode->calculateF(*goal,navMap);
-				frontier.insert(newNode);
+				frontier.push(newNode);
 			} else if(newNode->gCost < KnownNodes[*it]->gCost)
 			{
 				KnownNodes[*it] = newNode;
 			}
 
 		}
-		cout << "Still pathing" << endl;
+		//cout << "Still pathing: " << frontier.size() << " nodes left" << endl;
 	}
+	cout << "No path found" << endl;
+	return vector<util::Point>();
 }
 
 //Max Linear = 0.22
 //Max Angular = 2.84
-geometry_msgs::msg::Twist Navigator::goTo(util::Point loc)
+geometry_msgs::msg::Twist Explorer::goTo(util::Point loc)
 {
 	geometry_msgs::msg::Twist move;
 	const float relAngle = atan((float)loc.x/(float)loc.y) - robotPose->heading;
-	move.angular.z = relAngle > 0 ? min(2.84, relAngle*1.42) : max(-2.84,relAngle*1.42);
-	const float manhattandistance = max(abs(loc.x - robotPose->loc.x), abs(loc.y - robotPose->loc.y));
-	move.linear.x = min(0.22,manhattandistance/5.0);
+	if(abs(relAngle) < 0.35) //About 20 degrees
+	{
+		move.linear.x = 0.01;
+	}
+	move.angular.z = relAngle > 0 ? -0.05 : 0.05;
 	return move;
 }
 
@@ -257,9 +268,6 @@ geometry_msgs::msg::Twist RandomExplorer::nextMove()
 	cv::Point2f endPoint(navMap->getMapCentre().x + robotPose->loc.x + checkRange * cos(robotPose->heading),navMap->getMapCentre().y + robotPose->loc.y + checkRange * sin(robotPose->heading));
 	cv::Point2f endPointH(navMap->getMapCentre().x + robotPose->loc.x + checkRange * cos(robotPose->heading+0.1),navMap->getMapCentre().y + robotPose->loc.y + checkRange * sin(robotPose->heading+0.1));
 	cv::Point2f endPointL(navMap->getMapCentre().x + robotPose->loc.x + checkRange * cos(robotPose->heading-0.1),navMap->getMapCentre().y + robotPose->loc.y + checkRange * sin(robotPose->heading-0.1));
-	cout << "Checking to:" << endPoint.x << "," << endPoint.y << endl;
-	cout << "Checking to:" << endPointH.x << "," << endPointH.y << endl;
-	cout << "Checking to:" << endPointL.x << "," << endPointL.y << endl;
 	bool obstructed = lineCheckObstacle(endPoint) || lineCheckObstacle(endPointH) || lineCheckObstacle(endPointL);
 	geometry_msgs::msg::Twist movement;
 	movement.angular.z = 0.0;
@@ -285,6 +293,14 @@ geometry_msgs::msg::Twist RandomExplorer::nextMove()
 			return movement;
 		}
 		return lastMove;
+	}
+
+	if(robotPose->loc.x < minX || robotPose->loc.y < minY || robotPose->loc.x > maxX || robotPose->loc.y > maxY)
+	{
+		util::Point centre((maxX+minX)/2,(maxY+minY)/2);
+		cout << "Out of bounds, pointing to: " << centre.toString() << endl;
+		movement = lastMove = goTo(centre);
+		return movement;
 	}
 
 	movement.linear.x = 0.01;

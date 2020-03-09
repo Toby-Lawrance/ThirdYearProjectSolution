@@ -129,18 +129,15 @@ int main(int argc, char* argv[])
 	rclcpp::init(argc,argv);
 	cout << "Init OpenCV: " << CV_VERSION << endl;
 
-	Explorer e;
+	//Explorer e;
+	RandomExplorer e;
+	//Searcher e;
 	e.minX = -10;
 	e.maxX = 90;
-	e.minY = -10;
-	e.maxY = 90;
-	//RandomExplorer e;
-	//Searcher e;
+	e.minY = -90;
+	e.maxY = 10;
 	auto node = make_shared<ProcessorNavigator>(&e);
 	cout << "Node made" << endl;
-	auto odomReset = node->create_publisher<std_msgs::msg::Empty>("reset", 10);
-	odomReset->publish(std_msgs::msg::Empty());
-	cout << "Reset Odometry" << endl;
 	while(rclcpp::ok())
 	{
 		auto t1 = high_resolution_clock::now();
@@ -153,6 +150,7 @@ int main(int argc, char* argv[])
 		}
 		rclcpp::spin_some(node);
 	}
+	cout << "Done" << endl;
 	rclcpp::shutdown();
 	return 0;
 }

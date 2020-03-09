@@ -4,15 +4,17 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <random>
 #include <vector>
+#include <string>
+#include <memory>
 
 class Node
 {
  public:
 	util::Point loc;
-	Node* parent = nullptr;
+	std::shared_ptr<Node> parent;
 	float gCost,hCost,fCost;
 
-	Node(util::Point s, Node* p, float path) : loc(s),parent(p),gCost(path) {}
+	Node(util::Point s, std::shared_ptr<Node> p, float path) : loc(s),parent(std::move(p)),gCost(path) {}
 
 	inline bool operator <(const Node& rhs)
 	{
@@ -49,6 +51,11 @@ class Node
 		return fCost = gCost + this->calculateH(dest,m);
 	}
 
+	std::string toString()
+	{
+		return loc.toString() + ":" + std::to_string(fCost);
+	}
+
 	util::Point convertToMap(Map* m) const;
 	static util::Point convertToMap(Map* m, util::Point pathLoc);
 	static util::Point convertToPath(Map* m, util::Point mapLoc);
@@ -64,8 +71,6 @@ public:
 	 bool lineCheckObstacle(cv::Point2f checkPoint);
 	 virtual geometry_msgs::msg::Twist nextMove() = 0;
 
-	 std::vector<util::Point> pathTo(util::Point to);
-	 geometry_msgs::msg::Twist goTo(util::Point loc);
 
  private:
 	bool checkPixel(int y, int x);
@@ -76,9 +81,12 @@ public:
 class Explorer : public Navigator
 {
 public:
-	int minX,maxX;
-	int minY,maxY;
-		
+	int minX=0,maxX=100;
+	int minY=0,maxY=100;
+
+	std::vector<util::Point> pathTo(util::Point to);
+	geometry_msgs::msg::Twist goTo(util::Point loc);
+	std::vector<util::Point> getNeighbours(util::Point p);
 	virtual geometry_msgs::msg::Twist nextMove();
 };
 
@@ -89,7 +97,7 @@ public:
 	virtual geometry_msgs::msg::Twist nextMove();
 };
 
-class Searcher : public Navigator
+class Searcher : public Explorer
 {
 public:
 	virtual geometry_msgs::msg::Twist nextMove();
